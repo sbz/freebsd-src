@@ -124,6 +124,10 @@ wep2str(int w) {
 		wep = "WPA1-CCMP-PSK";
 		break;
 
+	case CRYPT_WPA_2:
+		wep = "WPA2";
+		break;
+
 	case CRYPT_80211i:
 		wep = "i";
 		break;
@@ -577,7 +581,7 @@ get_beacon_info(unsigned char* data, int rd,
 				goto next;
 			
 			if (!memcmp(wpa->wpa_oui, "\x00\x50\xf2", 3)) {
-			//	node->wep = CRYPT_WPA;
+				node->wep = CRYPT_WPA;
 			}	
 			else
 				goto next;

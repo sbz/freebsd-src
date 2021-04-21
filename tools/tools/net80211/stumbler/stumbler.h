@@ -12,6 +12,7 @@
 #define CRYPT_80211i		8
 #define CRYPT_80211i_TKIP	9
 #define CRYPT_80211i_TKIP_PSK	10
+#define CRYPT_WPA_2		11
 
 struct chan_info {
 	int locked;
