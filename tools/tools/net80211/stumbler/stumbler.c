@@ -48,53 +48,20 @@
 #include <unistd.h>
 #include <assert.h>
 
+#include "stumbler.h"
+
+static struct chan_info chaninfo;
+static struct node_info *nodes = 0;
+
 //int hopfreq = 3*1000; // ms
 static unsigned long hopfreq = 500; // ms
 static unsigned long sig_reset = 1*1000; // ms
 
-
 static int ioctl_s = -1;
 static int bpf_s = -1;
 
-static struct chan_info {
-	int locked;
-	int chan;
-	struct ieee80211req ireq;
-	struct timeval last_hop;
-} chaninfo;
-
-
-#define CRYPT_NONE		0
-#define CRYPT_WEP		1
-#define CRYPT_WPA1		2
-#define CRYPT_WPA		3
-#define CRYPT_WPA1_TKIP		4
-#define CRYPT_WPA1_TKIP_PSK	5
-#define CRYPT_WPA1_CCMP		6
-#define CRYPT_WPA1_CCMP_PSK	7
-#define CRYPT_80211i		8
-#define CRYPT_80211i_TKIP	9
-#define CRYPT_80211i_TKIP_PSK	10
-
-static struct node_info {
-	unsigned char mac[6];
-	int signal;
-	int noise;
-	int max;
-	unsigned char ssid[256];
-	int chan;
-	int wep;
-	int pos;
-	int ap;
-
-	struct timeval seen;
-
-	struct node_info* prev;
-	struct node_info* next;
-} *nodes = 0;
-
-static void
-clean_crap() {
+void
+clean_crap(void) {
 	struct node_info* next;
 
 	if (ioctl_s != -1)
@@ -109,7 +76,7 @@ clean_crap() {
 	}
 }
 
-static char*
+char*
 mac2str(unsigned char* mac) {
         static char ret[6*3];
 
@@ -119,7 +86,7 @@ mac2str(unsigned char* mac) {
         return ret;
 }
 
-static char*
+char*
 wep2str(int w) {
 	char* wep = 0;
 	static char res[14];
@@ -181,7 +148,7 @@ wep2str(int w) {
 	return res;
 }
 
-static char*
+char*
 ssid2str(struct node_info* node) {
 	static char res[24];
 
@@ -202,8 +169,8 @@ ssid2str(struct node_info* node) {
 	return res;
 }
 
-static void
-save_state() {
+void
+save_state(void) {
 	FILE* f;
 	struct node_info* node = nodes;
 
@@ -235,14 +202,14 @@ save_state() {
 	fclose(f);
 }
 
-static void
-cleanup() {
+void
+cleanup(int sig __unused) {
 	endwin();
 	clean_crap();
 	exit(0);
 }
 
-static void
+void
 die(int p, char* msg) {
 	endwin();
 	if (p)
@@ -253,8 +220,8 @@ die(int p, char* msg) {
 	exit(1);
 }
 
-static void 
-display_chan() {
+void
+display_chan(void) {
 	int x, y;
 	char tmp[3];
 
@@ -266,7 +233,7 @@ display_chan() {
 	refresh();
 }
 
-static void
+void
 set_chan(int c) {
         chaninfo.ireq.i_val = c;
 
@@ -281,7 +248,7 @@ set_chan(int c) {
 	display_chan();
 }
 
-static void
+void
 setup_if(char *dev) {
         struct ifreq ifr;
         unsigned int flags;
@@ -310,7 +277,7 @@ setup_if(char *dev) {
                 die(1, "ioctl(SIOCSIFFLAGS)");
 }
 
-static void
+void
 open_bpf(char *dev, int dlt) {
         int i;
         char buf[64];
@@ -349,8 +316,8 @@ open_bpf(char *dev, int dlt) {
 	bpf_s = fd;
 }
 
-static void
-user_input() {
+void
+user_input(void) {
 	static char chan[3];
 	static int pos = 0;
 	int c;
@@ -363,7 +330,7 @@ user_input() {
 			break;
 
 		case 'q':
-			cleanup();
+			cleanup(0);
 			break;
 
 		case 'c':
@@ -401,7 +368,7 @@ user_input() {
 	}		
 }
 
-static void
+void
 display_node(struct node_info* node) {
 	int x = 0;
 	int y = 0;
@@ -463,7 +430,7 @@ display_node(struct node_info* node) {
 	assert (x <= COLS);
 }
 
-static void
+void
 update_node(struct node_info* data) {
 	struct node_info* node;
 	int sort = 0;
@@ -551,7 +518,7 @@ update_node(struct node_info* data) {
 	refresh();
 }
 
-static void
+void
 get_beacon_info(unsigned char* data, int rd, 
 		     struct node_info* node) {
 
@@ -694,7 +661,7 @@ next:
 	}
 }
 
-static int
+int
 get_packet_info(struct ieee80211_frame* wh, 
 		     unsigned char* body, int bodylen,
 		     struct node_info* node) {
@@ -755,7 +722,7 @@ get_packet_info(struct ieee80211_frame* wh,
 	return 1;	
 }		     
 
-static void
+void
 radiotap(unsigned char* data, int rd) {
 	struct ieee80211_radiotap_header* rth;
 	struct ieee80211_frame* wh;
@@ -859,8 +826,8 @@ radiotap(unsigned char* data, int rd) {
 	update_node(&node);
 }
 
-static void
-bpf_input() {
+void
+bpf_input(void) {
 	static unsigned char buf[4096];
 	int rd;
 	struct bpf_hdr* bpfh;
@@ -1057,6 +1024,6 @@ int main(int argc, char *argv[]) {
 	
 	own(argv[1]);
 
-	cleanup();
+	cleanup(0);
 	exit(0);
 }
