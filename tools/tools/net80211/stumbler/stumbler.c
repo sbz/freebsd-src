@@ -49,14 +49,14 @@
 #include <assert.h>
 
 //int hopfreq = 3*1000; // ms
-int hopfreq = 500; // ms
-int sig_reset = 1*1000; // ms
+static unsigned long hopfreq = 500; // ms
+static unsigned long sig_reset = 1*1000; // ms
 
 
-int ioctl_s = -1;
-int bpf_s = -1;
+static int ioctl_s = -1;
+static int bpf_s = -1;
 
-struct chan_info {
+static struct chan_info {
 	int locked;
 	int chan;
 	struct ieee80211req ireq;
@@ -76,7 +76,7 @@ struct chan_info {
 #define CRYPT_80211i_TKIP	9
 #define CRYPT_80211i_TKIP_PSK	10
 
-struct node_info {
+static struct node_info {
 	unsigned char mac[6];
 	int signal;
 	int noise;
@@ -93,7 +93,8 @@ struct node_info {
 	struct node_info* next;
 } *nodes = 0;
 
-void clean_crap() {
+static void
+clean_crap() {
 	struct node_info* next;
 
 	if (ioctl_s != -1)
@@ -108,7 +109,8 @@ void clean_crap() {
 	}
 }
 
-char* mac2str(unsigned char* mac) {
+static char*
+mac2str(unsigned char* mac) {
         static char ret[6*3];
 
         sprintf(ret, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
@@ -117,7 +119,8 @@ char* mac2str(unsigned char* mac) {
         return ret;
 }
 
-char* wep2str(int w) {
+static char*
+wep2str(int w) {
 	char* wep = 0;
 	static char res[14];
 
@@ -178,7 +181,8 @@ char* wep2str(int w) {
 	return res;
 }
 
-char* ssid2str(struct node_info* node) {
+static char*
+ssid2str(struct node_info* node) {
 	static char res[24];
 
 	memset(res, ' ', sizeof(res));
@@ -188,7 +192,7 @@ char* ssid2str(struct node_info* node) {
 	if (node->ap) {
 		int left = sizeof(res) - 3;
 
-		if (strlen(node->ssid) < left)
+		if (strlen(node->ssid) < (unsigned long)left)
 			left = strlen(node->ssid);
 		memcpy(&res[1], node->ssid, left);
 	}	
@@ -198,7 +202,8 @@ char* ssid2str(struct node_info* node) {
 	return res;
 }
 
-void save_state() {
+static void
+save_state() {
 	FILE* f;
 	struct node_info* node = nodes;
 
@@ -230,13 +235,15 @@ void save_state() {
 	fclose(f);
 }
 
-void cleanup(int x) {
+static void
+cleanup() {
 	endwin();
 	clean_crap();
 	exit(0);
 }
 
-void die(int p, char* msg) {
+static void
+die(int p, char* msg) {
 	endwin();
 	if (p)
 		perror(msg);
@@ -246,7 +253,8 @@ void die(int p, char* msg) {
 	exit(1);
 }
 
-void display_chan() {
+static void 
+display_chan() {
 	int x, y;
 	char tmp[3];
 
@@ -258,7 +266,8 @@ void display_chan() {
 	refresh();
 }
 
-void set_chan(int c) {
+static void
+set_chan(int c) {
         chaninfo.ireq.i_val = c;
 
         if (ioctl(ioctl_s, SIOCS80211, &chaninfo.ireq) == -1)
@@ -272,7 +281,8 @@ void set_chan(int c) {
 	display_chan();
 }
 
-void setup_if(char *dev) {
+static void
+setup_if(char *dev) {
         struct ifreq ifr;
         unsigned int flags;
 
@@ -300,7 +310,8 @@ void setup_if(char *dev) {
                 die(1, "ioctl(SIOCSIFFLAGS)");
 }
 
-void open_bpf(char *dev, int dlt) {
+static void
+open_bpf(char *dev, int dlt) {
         int i;
         char buf[64];
         int fd = -1;
@@ -338,7 +349,8 @@ void open_bpf(char *dev, int dlt) {
 	bpf_s = fd;
 }
 
-void user_input() {
+static void
+user_input() {
 	static char chan[3];
 	static int pos = 0;
 	int c;
@@ -351,7 +363,7 @@ void user_input() {
 			break;
 
 		case 'q':
-			cleanup(0);
+			cleanup();
 			break;
 
 		case 'c':
@@ -389,7 +401,8 @@ void user_input() {
 	}		
 }
 
-void display_node(struct node_info* node) {
+static void
+display_node(struct node_info* node) {
 	int x = 0;
 	int y = 0;
 	int i;
@@ -450,7 +463,8 @@ void display_node(struct node_info* node) {
 	assert (x <= COLS);
 }
 
-void update_node(struct node_info* data) {
+static void
+update_node(struct node_info* data) {
 	struct node_info* node;
 	int sort = 0;
 
@@ -537,7 +551,8 @@ void update_node(struct node_info* data) {
 	refresh();
 }
 
-void get_beacon_info(unsigned char* data, int rd, 
+static void
+get_beacon_info(unsigned char* data, int rd, 
 		     struct node_info* node) {
 
 	int blen = 8 + 2 + 2;
@@ -618,7 +633,7 @@ void get_beacon_info(unsigned char* data, int rd,
 				if (elen < (ptr - data + 6))
 					goto next;
 
-				if ( *((unsigned short*) ptr) == 0)
+				if ( *(ptr) == 0)
 					goto next;
 
 				ptr += 2 + 3;
@@ -646,7 +661,7 @@ void get_beacon_info(unsigned char* data, int rd,
 			ptr = data;
 
 			if (ptr[0] == 1 && ptr[1] == 0) {
-				unsigned short* count;
+				unsigned char* count;
 				int cipher = 0;
 
 				ptr += 2;
@@ -658,10 +673,10 @@ void get_beacon_info(unsigned char* data, int rd,
 				}
 
 				ptr += 4;
-				count = (unsigned short*) ptr;
+				count = ptr;
 				ptr +=2 + *count*4;
 
-				count = (unsigned short*) ptr;
+				count = ptr;
 				if (*count) {
 					ptr += 2;
 
@@ -679,7 +694,8 @@ next:
 	}
 }
 
-int get_packet_info(struct ieee80211_frame* wh, 
+static int
+get_packet_info(struct ieee80211_frame* wh, 
 		     unsigned char* body, int bodylen,
 		     struct node_info* node) {
 	
@@ -739,7 +755,8 @@ int get_packet_info(struct ieee80211_frame* wh,
 	return 1;	
 }		     
 
-void radiotap(unsigned char* data, int rd) {
+static void
+radiotap(unsigned char* data, int rd) {
 	struct ieee80211_radiotap_header* rth;
 	struct ieee80211_frame* wh;
 	char* body;
@@ -842,7 +859,8 @@ void radiotap(unsigned char* data, int rd) {
 	update_node(&node);
 }
 
-void bpf_input() {
+static void
+bpf_input() {
 	static unsigned char buf[4096];
 	int rd;
 	struct bpf_hdr* bpfh;
@@ -855,8 +873,8 @@ void bpf_input() {
 	bpfh = (struct bpf_hdr*) buf;
 	rd -= bpfh->bh_hdrlen;
 
-	if (rd != bpfh->bh_caplen) {
-		assert( rd > bpfh->bh_caplen);
+	if (rd != (int)bpfh->bh_caplen) {
+		assert( rd > (int)bpfh->bh_caplen);
 		rd = bpfh->bh_caplen;
 	}
 
@@ -864,7 +882,8 @@ void bpf_input() {
 	radiotap(data, rd);
 }
 
-unsigned long elapsed_ms(struct timeval* now, struct timeval* prev) {
+static unsigned long
+elapsed_ms(struct timeval* now, struct timeval* prev) {
 	unsigned long elapsed = 0;
 
 	if (now->tv_sec > prev->tv_sec)
@@ -880,7 +899,8 @@ unsigned long elapsed_ms(struct timeval* now, struct timeval* prev) {
 	return elapsed;
 }
 
-void chanhop(struct timeval* tv) {
+static void
+chanhop(struct timeval* tv) {
 	unsigned long elapsed = 0;
 
 	if (gettimeofday(tv, NULL) == -1)
@@ -912,7 +932,8 @@ void chanhop(struct timeval* tv) {
 	tv->tv_usec = (elapsed - tv->tv_sec*1000)*1000;
 }
 
-void check_seen(struct timeval* tv) {
+static void
+check_seen(struct timeval* tv) {
 	unsigned long elapsed  = 0;
 	struct timeval now;
 	int need_refresh = 0;
@@ -960,7 +981,8 @@ void check_seen(struct timeval* tv) {
 	}
 }
 
-void own(char* ifname) {
+static void
+own(char* ifname) {
 	int rd;
 	fd_set fds;
 	struct timeval tv;
@@ -997,7 +1019,8 @@ void own(char* ifname) {
 	}
 }
 
-void init_globals() {
+static void
+init_globals() {
 	ioctl_s = socket(PF_INET, SOCK_DGRAM, 0);
 	if (ioctl_s == -1) {
 		perror("socket()");
@@ -1034,6 +1057,6 @@ int main(int argc, char *argv[]) {
 	
 	own(argv[1]);
 
-	cleanup(0);
+	cleanup();
 	exit(0);
 }
