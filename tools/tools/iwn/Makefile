@@ -1,5 +1,5 @@
 # $FreeBSD$
 
-SUBDIR=	iwnstats
+SUBDIR=	iwnstats iwndebug
 
 .include <bsd.subdir.mk>
