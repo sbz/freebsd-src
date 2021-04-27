@@ -87,13 +87,13 @@ iwn_set_sysctl(const char *oid, int value) {
 }
 
 __unused static void
-iwn_get_systcl(const char *oid, int *value) {
+iwn_get_systcl(const char *oid, void **value) {
 
 	size_t len;
 	len = sizeof(value);
 
 	if (sysctlbyname(oid, &value, &len, NULL, 0) < 0)
-		errx(1, "sysctlbyname");
+		errx(1, "sysctlbyname %s", __func__);
 }
 
 static void
@@ -108,22 +108,24 @@ iwn_print_levels(void) {
 int
 main(int argc, char *argv[]) {
 
-	int value=2, i;
+	int value=2, n, i;
 	size_t len;
 	char oid[256];
+	char *oid1;
 
 	if (argc == 1) {
 		fprintf(stderr, "Usage: %s <level>\n", getprogname());
 		exit(1);
 	}
 
-	snprintf(oid, sizeof(oid), "dev.iwn.0.debug");
+	iwn_get_sysctl(oid, value);
+
+	n = snprintf(oid, sizeof(oid), "dev.iwn.0.debug");
+	oid[n] = '\0';
+	printf("oid %s value %d\n", oid, value);
+	asprintf(&oid1, "dev.iwn.%d.debug", 0);
+	printf("oid %s value %d\n", oid, value);
 	len = sizeof(oid);
-
-	if (sysctlbyname(oid, &value, &len, NULL, 0) < 0)
-		errx(1, "sysctlbyname");
-
-	printf("Get oid %s=%d\n", oid, value);
 
 	if (argv[1][0] == '?' || !strcmp(argv[1], "-h")) {
 		iwn_print_levels();
@@ -140,8 +142,6 @@ main(int argc, char *argv[]) {
 	}
 
 	iwn_set_sysctl(oid, value);
-
-	printf("Set oid %s=%d\n", oid, value);
 
 	exit(0);
 }
