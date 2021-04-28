@@ -37,16 +37,21 @@
 
 #include <net80211/ieee80211.h>
 
-#include "if_iwnreg.h"
-#include "if_iwn_debug.h"
+#include <dev/iwn/if_iwnreg.h>
+#include <dev/iwn/if_iwn_debug.h>
 
 #ifndef IWN_DEBUG_NONE
 #define IWN_DEBUG_NONE	0x00000000
 #endif
 
+#define xfree(x) do {	 \
+	if (x != NULL)   \
+		free(x); \
+} while (0)
+
 static struct {
 	const char 	*level;
-	int		value;
+	uint64_t	value;
 } iwn_levels[] = {
 	{"none",	IWN_DEBUG_NONE		},
 	{"xmit", 	IWN_DEBUG_XMIT 		},
@@ -55,7 +60,7 @@ static struct {
 	{"txpower", 	IWN_DEBUG_TXPOW 	},
 	{"reset", 	IWN_DEBUG_RESET 	},
 	{"ops", 	IWN_DEBUG_OPS 		},
-	{"becon", 	IWN_DEBUG_BEACON 	},
+	{"beacon", 	IWN_DEBUG_BEACON 	},
 	{"watchdog", 	IWN_DEBUG_WATCHDOG 	},
 	{"intr", 	IWN_DEBUG_INTR 		},
 	{"calibrate", 	IWN_DEBUG_CALIBRATE 	},
@@ -77,27 +82,44 @@ static struct {
 #define nitems(array)	(sizeof((array)) / sizeof((array)[0]))
 #endif
 
-static void
+static int
 iwn_set_level(const char *oid, int level) {
-
 	if (sysctlbyname(oid, NULL, NULL, &level, sizeof(level)) == -1)
-		errx(1, "sysctlbyname %s:%d", __func__, __LINE__);
+		return (1);
+
+	return (0);
+}
+
+static int
+iwn_get_level(const char *oid) {
+	size_t len;
+	int curlevel;
+
+	len = sizeof(curlevel);
+
+	if (sysctlbyname(oid, &curlevel, &len, NULL, 0) == -1)
+		return (1);
+
+	return (curlevel);
+
 }
 
 static char *
 iwn_get_interface(const char *oid) {
-
-	char *device;
 	size_t len;
+	char *device;
 
 	if (sysctlbyname(oid, NULL, &len, NULL, 0) == -1)
-		errx(1, "sysctlbyname %s:%d", __func__, __LINE__);
+		return (NULL);
 
 	device = malloc(len);
 	device[len] = '\0';
 
-	if (sysctlbyname(oid, device, &len, NULL, 0) == -1)
-		errx(1, "sysctlbyname %s:%d", __func__, __LINE__);
+	if (sysctlbyname(oid, device, &len, NULL, 0) == -1) {
+		xfree(device);
+
+		return (NULL);
+	}
 
 
 	return device;
@@ -105,7 +127,7 @@ iwn_get_interface(const char *oid) {
 
 static void
 iwn_print_levels(FILE *stream) {
-	size_t i;
+	unsigned i;
 
 	fprintf(stream, "Possible debug levels:\n");
 
@@ -114,36 +136,75 @@ iwn_print_levels(FILE *stream) {
 	}
 }
 
+static void
+usage(void) {
+	fprintf(stderr, "usage: %s [-h] [-level | +level ...]\n", getprogname());
+	fprintf(stderr, "       %s none\n", getprogname());
+	fprintf(stderr, "       %s [-?]\n", getprogname());
+}
+
 int
 main(int argc, char *argv[]) {
-	int value;
+	uint64_t value;
 	int found;
-	size_t i;
+	int narg;
+	unsigned i;
 
 	char *oid;
 	char *ifname;
 
 	found = 0;
+	oid = NULL;
+	ifname = NULL;
 
-	if (argc == 1) {
-		fprintf(stderr, "Usage: %s <level>\n", getprogname());
-		exit(EX_USAGE);
-	}
 
 	ifname = iwn_get_interface("net.wlan.devices");
+	if (ifname == NULL || strncmp(ifname, "iwn", 3) != 0)
+		errx(EX_DATAERR, "could not find iwn device");
 
 	asprintf(&oid, "dev.iwn.%s.debug", ifname+3);
 
-	if (!strncmp(argv[1], "-?", 2) || !strncmp(argv[1], "-h", 2)) {
+
+	value = iwn_get_level(oid);
+
+	if (argc == 1) {
+		goto skiploop;
+	}
+
+
+	if (!strncmp(argv[1], "-?", 2)) {
 		iwn_print_levels(stderr);
 		exit(EX_USAGE);
 	}
 
-	for (i=0; i< nitems(iwn_levels); i++) {
-		if (strcmp(argv[1], iwn_levels[i].level) == 0) {
-			found = 1;
-			value = iwn_levels[i].value;
+	if (!strncmp(argv[1], "-h", 2)) {
+		usage();
+		exit(EX_USAGE);
+	}
+
+
+	if (argc <= 2) {
+		/* special no +/-, just disable debug using none */
+		if (strncmp(argv[1], iwn_levels[0].level, 4) == 0) {
+			value = iwn_levels[0].value;
+			goto skiploop;
 		}
+	}
+
+	narg = 1;
+
+	while (narg <= argc-1) {
+		for (i=0; i< nitems(iwn_levels); i++) {
+			if (argv[narg][0] == '+' && strcmp(argv[narg]+1, iwn_levels[i].level) == 0) {
+				found = 1;
+				value |= iwn_levels[i].value;
+			} else if (argv[narg][0] == '-' && strcmp(argv[narg]+1, iwn_levels[i].level) == 0) {
+				found = 1;
+				value ^= iwn_levels[i].value;
+
+			}
+		}
+		narg++;
 	}
 
 	if (!found) {
@@ -151,10 +212,14 @@ main(int argc, char *argv[]) {
 		exit(EX_DATAERR);
 	}
 
-	iwn_set_level(oid, value);
+skiploop:
+	if (iwn_set_level(oid, value) != 0)
+		errx(EX_DATAERR, "unable to set iwn debug level");
 
-	free(ifname);
-	free(oid);
+	fprintf(stdout, "%s=0x%lx\n", oid, value);
+
+	xfree(ifname);
+	xfree(oid);
 
 	exit(EX_OK);
 }
