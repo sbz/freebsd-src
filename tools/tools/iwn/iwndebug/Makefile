@@ -1,16 +1,20 @@
 
 MAN=
 
-.include <bsd.own.mk>
+.include <bsd.compiler.mk>
+
+.PATH:	${.CURDIR}/../../../../sys/dev/iwn/
+
+CFLAGS+=-I${.CURDIR}/../../../../sys/dev/iwn/
+CFLAGS+=-I${.CURDIR}/../../../../sys/
+CFLAGS+=-DIWN_DEBUG
 
 PROG=	iwndebug
 
 BINDIR?=/usr/local/sbin
 
-CFLAGS+= -DIWN_DEBUG -I/usr/src/sys/ -Wno-unused-parameter
-
 SRCS=	main.c
 
-CFLAGS.clang+=	-fbracket-depth=512
+CFLAGS.clang+=	-fbracket-depth=512 -Wno-unused-function
 
 .include <bsd.prog.mk>

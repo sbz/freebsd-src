@@ -1,58 +1,54 @@
 /*-
+ * SPDX-License-Identifier: BSD-2-Clause-FreeBSD
+ *
  * Copyright (c) 2021 Sofian Brabez <sbz@FreeBSD.org>
  * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions, and the following disclaimer,
+ *    without modification, immediately at the beginning of the file.
+ * 2. The name of the author may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
  *
  */
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
-#include <net/if.h>
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <string.h>
 #include <err.h>
+#include <sysexits.h>
 
-#include <getopt.h>
+#include <net80211/ieee80211.h>
 
-/*
-#include <net80211/ieee80211_var.h>
+#include "if_iwnreg.h"
+#include "if_iwn_debug.h"
 
-#include <dev/iwn/if_iwnreg.h>
-#include <dev/iwn/if_iwn_debug.h>*/
-
-//FIXME: figure out how to not copy from if_iwn_debug.h
-enum {
-	IWN_DEBUG_XMIT		= 0x00000001,	/* basic xmit operation */
-	IWN_DEBUG_RECV		= 0x00000002,	/* basic recv operation */
-	IWN_DEBUG_STATE		= 0x00000004,	/* 802.11 state transitions */
-	IWN_DEBUG_TXPOW		= 0x00000008,	/* tx power processing */
-	IWN_DEBUG_RESET		= 0x00000010,	/* reset processing */
-	IWN_DEBUG_OPS		= 0x00000020,	/* iwn_ops processing */
-	IWN_DEBUG_BEACON 	= 0x00000040,	/* beacon handling */
-	IWN_DEBUG_WATCHDOG 	= 0x00000080,	/* watchdog timeout */
-	IWN_DEBUG_INTR		= 0x00000100,	/* ISR */
-	IWN_DEBUG_CALIBRATE	= 0x00000200,	/* periodic calibration */
-	IWN_DEBUG_NODE		= 0x00000400,	/* node management */
-	IWN_DEBUG_LED		= 0x00000800,	/* led management */
-	IWN_DEBUG_CMD		= 0x00001000,	/* cmd submission */
-	IWN_DEBUG_TXRATE	= 0x00002000,	/* TX rate debugging */
-	IWN_DEBUG_PWRSAVE	= 0x00004000,	/* Power save operations */
-	IWN_DEBUG_SCAN		= 0x00008000,	/* Scan related operations */
-	IWN_DEBUG_STATS		= 0x00010000,	/* Statistics updates */
-	IWN_DEBUG_AMPDU		= 0x00020000,	/* A-MPDU specific Tx */
-	IWN_DEBUG_REGISTER	= 0x20000000,	/* print chipset register */
-	IWN_DEBUG_TRACE		= 0x40000000,	/* Print begin and start driver function */
-	IWN_DEBUG_FATAL		= 0x80000000,	/* fatal errors */
-	IWN_DEBUG_ANY		= 0xffffffff
-};
+#ifndef IWN_DEBUG_NONE
+#define IWN_DEBUG_NONE	0x00000000
+#endif
 
 static struct {
 	const char 	*level;
 	int		value;
 } iwn_levels[] = {
-	{"none",	0			},
+	{"none",	IWN_DEBUG_NONE		},
 	{"xmit", 	IWN_DEBUG_XMIT 		},
 	{"recv", 	IWN_DEBUG_RECV 		},
 	{"state", 	IWN_DEBUG_STATE 	},
@@ -77,71 +73,88 @@ static struct {
 	{"any", 	IWN_DEBUG_ANY 		},
 };
 
-#define nitems(array) (sizeof(array)/sizeof(array[0]))
+#ifndef nitems
+#define nitems(array)	(sizeof((array)) / sizeof((array)[0]))
+#endif
 
 static void
-iwn_set_sysctl(const char *oid, int value) {
+iwn_set_level(const char *oid, int level) {
 
-	if (sysctlbyname(oid, NULL, NULL, &value, sizeof(value)) < 0)
-		errx(1, "sysctlbyname %s", __func__);
+	if (sysctlbyname(oid, NULL, NULL, &level, sizeof(level)) == -1)
+		errx(1, "sysctlbyname %s:%d", __func__, __LINE__);
 }
 
-__unused static void
-iwn_get_systcl(const char *oid, void **value) {
+static char *
+iwn_get_interface(const char *oid) {
 
+	char *device;
 	size_t len;
-	len = sizeof(value);
 
-	if (sysctlbyname(oid, &value, &len, NULL, 0) < 0)
-		errx(1, "sysctlbyname %s", __func__);
+	if (sysctlbyname(oid, NULL, &len, NULL, 0) == -1)
+		errx(1, "sysctlbyname %s:%d", __func__, __LINE__);
+
+	device = malloc(len);
+	device[len] = '\0';
+
+	if (sysctlbyname(oid, device, &len, NULL, 0) == -1)
+		errx(1, "sysctlbyname %s:%d", __func__, __LINE__);
+
+
+	return device;
 }
 
 static void
-iwn_print_levels(void) {
-	int i;
+iwn_print_levels(FILE *stream) {
+	size_t i;
 
-	for (i=0; i<(int)nitems(iwn_levels); i++) {
-		printf("%s\n", iwn_levels[i].level);
+	fprintf(stream, "Possible debug levels:\n");
+
+	for (i=0; i< nitems(iwn_levels); i++) {
+		fprintf(stream, "\t%s\n", iwn_levels[i].level);
 	}
 }
 
 int
 main(int argc, char *argv[]) {
+	int value;
+	int found;
+	size_t i;
 
-	int value=2, n, i;
-	size_t len;
-	char oid[256];
-	char *oid1;
+	char *oid;
+	char *ifname;
+
+	found = 0;
 
 	if (argc == 1) {
 		fprintf(stderr, "Usage: %s <level>\n", getprogname());
-		exit(1);
+		exit(EX_USAGE);
 	}
 
-	iwn_get_sysctl(oid, value);
+	ifname = iwn_get_interface("net.wlan.devices");
 
-	n = snprintf(oid, sizeof(oid), "dev.iwn.0.debug");
-	oid[n] = '\0';
-	printf("oid %s value %d\n", oid, value);
-	asprintf(&oid1, "dev.iwn.%d.debug", 0);
-	printf("oid %s value %d\n", oid, value);
-	len = sizeof(oid);
+	asprintf(&oid, "dev.iwn.%s.debug", ifname+3);
 
-	if (argv[1][0] == '?' || !strcmp(argv[1], "-h")) {
-		iwn_print_levels();
-		exit(1);
+	if (!strncmp(argv[1], "-?", 2) || !strncmp(argv[1], "-h", 2)) {
+		iwn_print_levels(stderr);
+		exit(EX_USAGE);
 	}
 
-	for (i=0; i<(int)nitems(iwn_levels); i++) {
-		//printf("Argv: %s\n", argv[1]);
-		//printf("Level: %s\n", iwn_levels[i].level);
-		if (strcmp(argv[1], iwn_levels[i].level))
-			continue;
-		value = iwn_levels[i].value;
-		printf("choose (%s, %d)\n", iwn_levels[i].level, iwn_levels[i].value);
+	for (i=0; i< nitems(iwn_levels); i++) {
+		if (strcmp(argv[1], iwn_levels[i].level) == 0) {
+			found = 1;
+			value = iwn_levels[i].value;
+		}
 	}
 
-	iwn_set_sysctl(oid, value);
+	if (!found) {
+		fprintf(stderr, "Invalid input\n");
+		exit(EX_DATAERR);
+	}
 
-	exit(0);
+	iwn_set_level(oid, value);
+
+	free(ifname);
+	free(oid);
+
+	exit(EX_OK);
 }
