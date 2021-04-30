@@ -2902,8 +2902,12 @@ dev/rtwn/rtl8192e/r92e_led.c	optional rtwn
 dev/rtwn/rtl8192e/r92e_rf.c	optional rtwn
 dev/rtwn/rtl8192e/r92e_rom.c	optional rtwn
 dev/rtwn/rtl8192e/r92e_rx.c	optional rtwn
+# RTL8192EU
 dev/rtwn/rtl8192e/usb/r92eu_attach.c	optional rtwn_usb
 dev/rtwn/rtl8192e/usb/r92eu_init.c	optional rtwn_usb
+# RTL8192EE
+dev/rtwn/rtl8192e/pci/r92ee_attach.c	optional rtwn_pci
+dev/rtwn/rtl8192e/pci/r92ee_init.c	optional rtwn_pci
 # RTL8812A
 dev/rtwn/rtl8812a/r12a_beacon.c	optional rtwn
 dev/rtwn/rtl8812a/r12a_calib.c	optional rtwn
