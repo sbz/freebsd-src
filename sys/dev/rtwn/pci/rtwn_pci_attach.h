@@ -17,10 +17,12 @@
  */
 
 void	r92ce_attach(struct rtwn_pci_softc *);
+void    r92ee_attach(struct rtwn_pci_softc *);
 void	r88ee_attach(struct rtwn_pci_softc *);
 
 enum {
 	RTWN_CHIP_RTL8192CE,
+    RTWN_CHIP_RTL8192EE,
 	RTWN_CHIP_RTL8188EE,
 	RTWN_CHIP_MAX_PCI
 };
@@ -36,12 +38,14 @@ static const struct rtwn_pci_ident rtwn_pci_ident_table[] = {
 	{ 0x10ec, 0x8176, "Realtek RTL8188CE", RTWN_CHIP_RTL8192CE },
 	{ 0x10ec, 0x8179, "Realtek RTL8188EE", RTWN_CHIP_RTL8188EE },
 	{ 0x10ec, 0x8178, "Realtek RTL8192CE", RTWN_CHIP_RTL8192CE },
+	{ 0x10ec, 0x818b, "Realtek RTL8192EE", RTWN_CHIP_RTL8192EE },
 };
 
 typedef void	(*chip_pci_attach)(struct rtwn_pci_softc *);
 
 static const chip_pci_attach rtwn_chip_pci_attach[RTWN_CHIP_MAX_PCI] = {
 	[RTWN_CHIP_RTL8192CE] = r92ce_attach,
+	[RTWN_CHIP_RTL8192EE] = r92ee_attach,
 	[RTWN_CHIP_RTL8188EE] = r88ee_attach
 };
 

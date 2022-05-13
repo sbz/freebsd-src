@@ -162,6 +162,8 @@ rtwn_attach(struct rtwn_softc *sc)
 	struct ieee80211com *ic = &sc->sc_ic;
 	int error;
 
+    device_printf(sc->sc_dev, "%s -> enter\n", __func__);
+
 	sc->cur_bcnq_id = RTWN_VAP_ID_INVALID;
 
 	RTWN_NT_LOCK_INIT(sc);
@@ -648,11 +650,14 @@ rtwn_read_chipid(struct rtwn_softc *sc)
 {
 	uint32_t reg;
 
+
 	reg = rtwn_read_4(sc, R92C_SYS_CFG);
 	if (reg & R92C_SYS_CFG_TRP_VAUX_EN)	/* test chip */
 		return (EOPNOTSUPP);
 
 	rtwn_read_chipid_vendor(sc, reg);
+
+    device_printf(sc->sc_dev, "%s -> success\n", __func__);
 
 	return (0);
 }

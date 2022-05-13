@@ -245,6 +245,8 @@ rtwn_read_rom(struct rtwn_softc *sc)
 	uint8_t *rom;
 	int error;
 
+    device_printf(sc->sc_dev, "%s -> enter\n", __func__);
+
 	rom = malloc(sc->efuse_maplen, M_TEMP, M_WAITOK);
 
 	/* Read full ROM image. */
@@ -259,6 +261,8 @@ rtwn_read_rom(struct rtwn_softc *sc)
 
 fail:
 	free(rom, M_TEMP);
+
+    device_printf(sc->sc_dev, "%s -> finish\n", __func__);
 
 	return (error);
 }

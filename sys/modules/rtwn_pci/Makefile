@@ -2,6 +2,8 @@
 
 .PATH: ${SRCTOP}/sys/dev/rtwn/pci
 
+DEBUG_FLAGS=-O0 -g
+
 SYSDIR?=${SRCTOP}/sys
 .include "${SYSDIR}/conf/kern.opts.mk"
 

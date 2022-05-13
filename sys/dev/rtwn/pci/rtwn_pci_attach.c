@@ -113,6 +113,8 @@ rtwn_pci_probe(device_t dev)
 {
 	const struct rtwn_pci_ident *ident;
 
+    device_printf(dev, "%s -> kernel code probe enter\n", __func__);
+
 	ident = rtwn_pci_probe_sub(dev);
 	if (ident != NULL) {
 		device_set_desc(dev, ident->name);
@@ -605,11 +607,14 @@ rtwn_pci_attach(device_t dev)
 	struct rtwn_softc *sc = &pc->pc_sc;
 	struct ieee80211com *ic = &sc->sc_ic;
 	uint32_t lcsr;
-	int cap_off, i, error, rid;
+	int cap_off, error, rid;
 
 	ident = rtwn_pci_probe_sub(dev);
 	if (ident == NULL)
 		return (ENXIO);
+
+
+    device_printf(dev, "%s -> pci device probe ok, ident: %s, vendor: %i, device: %i\n", __func__, ident->name, ident->vendor, ident->device);
 
 	/*
 	 * Get the offset of the PCI Express Capability Structure in PCI
@@ -621,8 +626,12 @@ rtwn_pci_attach(device_t dev)
 		return (error);
 	}
 
+    device_printf(dev, "%s -> success\n", "pci_find_cap");
+
 	/* Enable bus-mastering. */
 	pci_enable_busmaster(dev);
+
+    device_printf(dev, "%s -> success\n", "pci_enable_busmaster");
 
 	rid = PCIR_BAR(2);
 	pc->mem = bus_alloc_resource_any(dev, SYS_RES_MEMORY, &rid,
@@ -662,6 +671,7 @@ rtwn_pci_attach(device_t dev)
 	rtwn_pci_attach_methods(sc);
 	rtwn_pci_attach_private(pc, ident->chip);
 
+#if 1
 	/* Allocate Tx/Rx buffers. */
 	error = rtwn_pci_alloc_rx_list(sc);
 	if (error != 0) {
@@ -670,15 +680,32 @@ rtwn_pci_attach(device_t dev)
 		    error);
 		goto detach;
 	}
+	int i;
 	for (i = 0; i < RTWN_PCI_NTXQUEUES; i++) {
-		error = rtwn_pci_alloc_tx_list(sc, i);
-		if (error != 0) {
-			device_printf(dev,
-			    "could not allocate Tx buffers, error %d\n",
-			    error);
-			goto detach;
-		}
+               error = rtwn_pci_alloc_tx_list(sc, i);
+               if (error != 0) {
+                       device_printf(dev,
+                           "could not allocate Tx buffers, error %d\n",
+                           error);
+                       goto detach;
+               }
+       }
 	}
+#endif
+
+    device_printf(dev, "%s -> success\n", "rtwn_pci_alloc_rx_list");
+
+#if 1
+    error = rtwn_pci_alloc_tx_list(sc, RTWN_PCI_NTXQUEUES);
+    if (error != 0) {
+        device_printf(dev,
+            "could not allocate Tx buffers, error %d\n",
+            error);
+        goto detach;
+    }
+#endif
+
+    device_printf(dev, "%s -> success\n", "rtwn_pci_alloc_tx_list");
 
 	/* Generic attach. */
 	error = rtwn_attach(sc);
@@ -708,7 +735,6 @@ rtwn_pci_detach(device_t dev)
 {
 	struct rtwn_pci_softc *pc = device_get_softc(dev);
 	struct rtwn_softc *sc = &pc->pc_sc;
-	int i;
 
 	/* Generic detach. */
 	rtwn_detach(sc);
@@ -721,6 +747,8 @@ rtwn_pci_detach(device_t dev)
 		pci_release_msi(dev);
 	}
 
+#if 1
+	int i;
 	/* Free Tx/Rx buffers. */
 	for (i = 0; i < RTWN_PCI_NTXQUEUES; i++)
 		rtwn_pci_free_tx_list(sc, i);
@@ -729,6 +757,7 @@ rtwn_pci_detach(device_t dev)
 	if (pc->mem != NULL)
 		bus_release_resource(dev, SYS_RES_MEMORY,
 		    rman_get_rid(pc->mem), pc->mem);
+#endif
 
 	rtwn_detach_private(sc);
 	mtx_destroy(&sc->sc_mtx);
