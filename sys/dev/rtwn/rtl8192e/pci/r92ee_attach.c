@@ -247,13 +247,13 @@ r92ee_attach(struct rtwn_pci_softc *pc)
     sc->sc_post_init            = r92ee_post_init;
     sc->sc_init_bcnq1_boundary  = r92ee_init_bcnq1_boundary;
 
-    sc->mac_prog                = &rtl8192eu_mac[0];
+    sc->mac_prog                = &rtl8192ee_mac[0];
     sc->mac_size                = nitems(rtl8192eu_mac);
-    sc->bb_prog                 = &rtl8192eu_bb[0];
+    sc->bb_prog                 = &rtl8192ee_bb[0];
     sc->bb_size                 = nitems(rtl8192eu_bb);
-    sc->agc_prog                = &rtl8192eu_agc[0];
+    sc->agc_prog                = &rtl8192ee_agc[0];
     sc->agc_size                = nitems(rtl8192eu_agc);
-    sc->rf_prog                 = &rtl8192eu_rf[0];
+    sc->rf_prog                 = &rtl8192ee_rf[0];
 
     sc->name                    = "RTL8192EE";
     sc->fwname                  = "rtwn-rtl8192eefw";
