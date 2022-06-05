@@ -75,7 +75,6 @@ __FBSDID("$FreeBSD$");
 #include <dev/rtwn/rtl8192e/pci/r92ee.h>
 
 /* Common part */
-
 #include <dev/rtwn/rtl8192e/usb/r92eu.h>
 #include <dev/rtwn/rtl8192c/r92c.h>
 #include <dev/rtwn/rtl8188e/r88e.h>
@@ -85,6 +84,60 @@ __FBSDID("$FreeBSD$");
 #include <dev/rtwn/rtl8821a/usb/r21au.h>
 
 void    r92ee_attach(struct rtwn_pci_softc *);
+
+
+/* Aliases */
+#define r92ee_set_chan                r92e_set_chan
+#define r92ee_fill_tx_desc            r12a_fill_tx_desc
+#define r92ee_fill_tx_desc_raw        r12a_fill_tx_desc_raw
+#define r92ee_fill_tx_desc_null       r12a_fill_tx_desc_null
+#define r92ee_dump_tx_desc            NULL
+#define r92ee_tx_radiotap_flags       r12a_tx_radiotap_flags
+#define r92ee_rx_radiotap_flags       r12a_rx_radiotap_flags
+#define r92ee_get_rx_stats            r12a_get_rx_stats
+#define r92ee_get_rssi_cck            r92e_get_rssi_cck
+#define r92ee_get_rssi_ofdm           r88e_get_rssi_ofdm
+#define r92ee_classify_intr           NULL
+#define r92ee_ratectl_tx_complete     r12a_ratectl_tx_complete
+#define r92ee_handle_c2h_report       r92e_handle_c2h_report
+#define r92ee_check_frame             rtwn_nop_int_softc_mbuf
+#define r92ee_rf_read                 r92e_rf_read
+#define r92ee_rf_write                r92e_rf_write
+#define r92ee_check_condition         r92c_check_condition
+#define r92ee_efuse_postread          rtwn_nop_softc
+#define r92ee_parse_rom               r92e_parse_rom
+#define r92ee_set_led                 r92e_set_led
+#define r92ee_power_on                r92e_power_on
+#define r92ee_power_off               r92e_power_off
+#define r92ee_fw_reset                r92e_fw_reset
+#define r92ee_fw_download_enable      r12a_fw_download_enable
+#define r92ee_llt_init                r92e_llt_init
+#define r92ee_set_page_size           rtwn_nop_int_softc
+#define r92ee_lc_calib                r92c_lc_calib
+#define r92ee_iq_calib                rtwn_nop_softc
+#define r92ee_read_chipid_vendor      r92c_read_chipid_vendor
+#define r92ee_vap_preattach           rtwn_nop_softc_vap
+#define r92ee_postattach              rtwn_nop_softc
+#define r92ee_set_media_status        r92e_set_media_status
+#define r92ee_set_rsvd_page           r88e_set_rsvd_page
+#define r92ee_set_pwrmode             r92e_set_pwrmode
+#define r92ee_set_rssi                rtwn_nop_softc
+#define r92ee_beacon_init             r12a_beacon_init
+#define r92ee_beacon_enable           r92c_beacon_enable
+#define r92ee_beacon_set_rate         rtwn_nop_void_int
+#define r92ee_beacon_select           r21a_beacon_select
+#define r92ee_temp_measure            r88e_temp_measure
+#define r92ee_temp_read               r88e_temp_read
+#define r92ee_init_tx_agg             NULL
+#define r92ee_init_rx_agg             NULL
+#define r92ee_init_ampdu              rtwn_nop_softc
+#define r92ee_init_intr               r12a_init_intr
+#define r92ee_init_edca               r92c_init_edca
+#define r92ee_init_bb                 r92e_init_bb
+#define r92ee_init_rf                 r92e_init_rf
+#define r92ee_init_antsel             rtwn_nop_softc
+#define r92ee_post_init               NULL
+#define r92ee_init_bcnq1_boundary     rtwn_nop_int_softc
 
 static void
 r92ee_attach_private(struct rtwn_softc *sc)
@@ -134,65 +187,65 @@ r92ee_attach(struct rtwn_pci_softc *pc)
 
     /* Common part. */
     sc->sc_flags                = RTWN_FLAG_EXT_HDR;
-    sc->sc_set_chan             = r92e_set_chan;
-    sc->sc_fill_tx_desc         = r12a_fill_tx_desc;
-    sc->sc_fill_tx_desc_raw     = r12a_fill_tx_desc_raw;
-    sc->sc_fill_tx_desc_null    = r12a_fill_tx_desc_null;
-    sc->sc_dump_tx_desc         = NULL;
-    sc->sc_tx_radiotap_flags    = r12a_tx_radiotap_flags;
-    sc->sc_rx_radiotap_flags    = r12a_rx_radiotap_flags;
-    sc->sc_get_rx_stats         = r12a_get_rx_stats;
-    sc->sc_get_rssi_cck         = r92e_get_rssi_cck;
-    sc->sc_get_rssi_ofdm        = r88e_get_rssi_ofdm;
-    sc->sc_classify_intr        = NULL;
-    sc->sc_handle_tx_report     = r12a_ratectl_tx_complete;
-    sc->sc_handle_c2h_report    = r92e_handle_c2h_report;
-    sc->sc_check_frame          = rtwn_nop_int_softc_mbuf;
-    sc->sc_rf_read              = r92e_rf_read;
-    sc->sc_rf_write             = r92e_rf_write;
-    sc->sc_check_condition      = r92c_check_condition;
-    sc->sc_efuse_postread       = rtwn_nop_softc;
-    sc->sc_parse_rom            = r92e_parse_rom;
-    sc->sc_set_led              = r92e_set_led;
-    sc->sc_power_on             = r92e_power_on;
-    sc->sc_power_off            = r92e_power_off;
+    sc->sc_set_chan             = r92ee_set_chan;
+    sc->sc_fill_tx_desc         = r92ee_fill_tx_desc;
+    sc->sc_fill_tx_desc_raw     = r92ee_fill_tx_desc_raw;
+    sc->sc_fill_tx_desc_null    = r92ee_fill_tx_desc_null;
+    sc->sc_dump_tx_desc         = r92ee_dump_tx_desc;
+    sc->sc_tx_radiotap_flags    = r92ee_tx_radiotap_flags;
+    sc->sc_rx_radiotap_flags    = r92ee_rx_radiotap_flags;
+    sc->sc_get_rx_stats         = r92ee_get_rx_stats;
+    sc->sc_get_rssi_cck         = r92ee_get_rssi_cck;
+    sc->sc_get_rssi_ofdm        = r92ee_get_rssi_ofdm;
+    sc->sc_classify_intr        = r92ee_classify_intr;
+    sc->sc_handle_tx_report     = r92ee_ratectl_tx_complete;
+    sc->sc_handle_c2h_report    = r92ee_handle_c2h_report;
+    sc->sc_check_frame          = r92ee_check_frame;
+    sc->sc_rf_read              = r92ee_rf_read;
+    sc->sc_rf_write             = r92ee_rf_write;
+    sc->sc_check_condition      = r92ee_check_condition;
+    sc->sc_efuse_postread       = r92ee_efuse_postread;
+    sc->sc_parse_rom            = r92ee_parse_rom;
+    sc->sc_set_led              = r92ee_set_led;
+    sc->sc_power_on             = r92ee_power_on;
+    sc->sc_power_off            = r92ee_power_off;
 #ifndef RTWN_WITHOUT_UCODE
-    sc->sc_fw_reset             = r92e_fw_reset;
-    sc->sc_fw_download_enable   = r12a_fw_download_enable;
+    sc->sc_fw_reset             = r92ee_fw_reset;
+    sc->sc_fw_download_enable   = r92ee_fw_download_enable;
 #endif
-    sc->sc_llt_init             = r92e_llt_init;
-    sc->sc_set_page_size        = rtwn_nop_int_softc;
-    sc->sc_lc_calib             = r92c_lc_calib;
-    sc->sc_iq_calib             = rtwn_nop_softc;
-    sc->sc_read_chipid_vendor   = r92c_read_chipid_vendor;
+    sc->sc_llt_init             = r92ee_llt_init;
+    sc->sc_set_page_size        = r92ee_set_page_size;
+    sc->sc_lc_calib             = r92ee_lc_calib;
+    sc->sc_iq_calib             = r92ee_iq_calib;
+    sc->sc_read_chipid_vendor   = r92ee_read_chipid_vendor;
     sc->sc_adj_devcaps          = r92ee_adj_devcaps;
-    sc->sc_vap_preattach        = rtwn_nop_softc_vap;
-    sc->sc_postattach           = rtwn_nop_softc;
+    sc->sc_vap_preattach        = r92ee_vap_preattach;
+    sc->sc_postattach           = r92ee_postattach;
     sc->sc_detach_private       = r92ee_detach_private;
 #ifndef RTWN_WITHOUT_UCODE
-    sc->sc_set_media_status     = r92e_set_media_status;
-    sc->sc_set_rsvd_page        = r88e_set_rsvd_page;
-    sc->sc_set_pwrmode          = r92e_set_pwrmode;
-    sc->sc_set_rssi             = rtwn_nop_softc;
+    sc->sc_set_media_status     = r92ee_set_media_status;
+    sc->sc_set_rsvd_page        = r92ee_set_rsvd_page;
+    sc->sc_set_pwrmode          = r92ee_set_pwrmode;
+    sc->sc_set_rssi             = r92ee_set_rssi;
 #else
     sc->sc_set_media_status     = rtwn_nop_softc_int;
 #endif
-    sc->sc_beacon_init          = r12a_beacon_init;
-    sc->sc_beacon_enable        = r92c_beacon_enable;
-    sc->sc_beacon_set_rate      = rtwn_nop_void_int;
-    sc->sc_beacon_select        = r21a_beacon_select;
-    sc->sc_temp_measure         = r88e_temp_measure;
-    sc->sc_temp_read            = r88e_temp_read;
-    sc->sc_init_tx_agg          = NULL;
-    sc->sc_init_rx_agg          = NULL;
-    sc->sc_init_ampdu           = rtwn_nop_softc;
-    sc->sc_init_intr            = r12a_init_intr;
-    sc->sc_init_edca            = r92c_init_edca;
-    sc->sc_init_bb              = r92e_init_bb;
-    sc->sc_init_rf              = r92e_init_rf;
-    sc->sc_init_antsel          = rtwn_nop_softc;
-    sc->sc_post_init            = NULL;
-    sc->sc_init_bcnq1_boundary  = rtwn_nop_int_softc;
+    sc->sc_beacon_init          = r92ee_beacon_init;
+    sc->sc_beacon_enable        = r92ee_beacon_enable;
+    sc->sc_beacon_set_rate      = r92ee_beacon_set_rate;
+    sc->sc_beacon_select        = r92ee_beacon_select;
+    sc->sc_temp_measure         = r92ee_temp_measure;
+    sc->sc_temp_read            = r92ee_temp_read;
+    sc->sc_init_tx_agg          = r92ee_init_tx_agg;
+    sc->sc_init_rx_agg          = r92ee_init_rx_agg;
+    sc->sc_init_ampdu           = r92ee_init_ampdu;
+    sc->sc_init_intr            = r92ee_init_intr;
+    sc->sc_init_edca            = r92ee_init_edca;
+    sc->sc_init_bb              = r92ee_init_bb;
+    sc->sc_init_rf              = r92ee_init_rf;
+    sc->sc_init_antsel          = r92ee_init_antsel;
+    sc->sc_post_init            = r92ee_post_init;
+    sc->sc_init_bcnq1_boundary  = r92ee_init_bcnq1_boundary;
 
     sc->mac_prog                = &rtl8192eu_mac[0];
     sc->mac_size                = nitems(rtl8192eu_mac);
@@ -204,7 +257,7 @@ r92ee_attach(struct rtwn_pci_softc *pc)
 
     sc->name                    = "RTL8192EE";
     sc->fwname                  = "rtwn-rtl8192eefw";
-    sc->fwsig                   = 0x92e;
+    sc->fwsig                   = R92EE_FW_SIG;
 
     sc->page_count              = R92E_TX_PAGE_COUNT;
     sc->pktbuf_count            = 0;

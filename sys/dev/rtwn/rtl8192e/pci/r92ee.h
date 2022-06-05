@@ -30,11 +30,13 @@
 
 #include <dev/rtwn/rtl8192e/r92e.h>
 
+#define R92EE_FW_SIG 0x92e
+
 /* r92ee_init.c */
 void	r92ee_init_intr(struct rtwn_softc *);
 void	r92ee_init_edca(struct rtwn_softc *);
 void	r92ee_init_bb(struct rtwn_softc *);
-int	    r92ee_power_on(struct rtwn_softc *);
+int 	r92ee_power_on(struct rtwn_softc *);
 void	r92ee_power_off(struct rtwn_softc *);
 void	r92ee_init_ampdu(struct rtwn_softc *);
 void	r92ee_post_init(struct rtwn_softc *);
