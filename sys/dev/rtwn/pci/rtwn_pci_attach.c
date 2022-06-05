@@ -678,7 +678,7 @@ rtwn_pci_attach(device_t dev)
 	rtwn_pci_attach_methods(sc);
 	rtwn_pci_attach_private(pc, ident->chip);
 
-#if 1
+#if 0
 	/* Allocate Tx/Rx buffers. */
 	error = rtwn_pci_alloc_rx_list(sc);
 	if (error != 0) {
@@ -702,7 +702,7 @@ rtwn_pci_attach(device_t dev)
 
     device_printf(dev, "%s -> success\n", "rtwn_pci_alloc_rx_list");
 
-#if 1
+#if 0
     error = rtwn_pci_alloc_tx_list(sc, RTWN_PCI_NTXQUEUES);
     if (error != 0) {
         device_printf(dev,
@@ -754,7 +754,7 @@ rtwn_pci_detach(device_t dev)
 		pci_release_msi(dev);
 	}
 
-#if 1
+#if 0
 	int i;
 	/* Free Tx/Rx buffers. */
 	for (i = 0; i < RTWN_PCI_NTXQUEUES; i++)
