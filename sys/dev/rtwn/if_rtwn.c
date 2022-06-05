@@ -168,12 +168,16 @@ rtwn_attach(struct rtwn_softc *sc)
 
 	RTWN_NT_LOCK_INIT(sc);
 	rtwn_cmdq_init(sc);
+
+    device_printf(sc->sc_dev, "rtwn_cmdq_init -> done\n");
 #ifndef D4054
 	callout_init_mtx(&sc->sc_watchdog_to, &sc->sc_mtx, 0);
 #endif
 	callout_init(&sc->sc_calib_to, 0);
 	callout_init(&sc->sc_pwrmode_init, 0);
 	mbufq_init(&sc->sc_snd, ifqmaxlen);
+
+    device_printf(sc->sc_dev, "mbufq_init -> done\n");
 
 	RTWN_LOCK(sc);
 	error = rtwn_read_chipid(sc);
@@ -276,9 +280,14 @@ rtwn_attach(struct rtwn_softc *sc)
 	rtwn_getradiocaps(ic, IEEE80211_CHAN_MAX, &ic->ic_nchans,
 	    ic->ic_channels);
 
+    device_printf(sc->sc_dev, "ieee80211com init -> done\n");
+
 	/* XXX TODO: setup regdomain if R92C_CHANNEL_PLAN_BY_HW bit is set. */
 
 	ieee80211_ifattach(ic);
+
+    device_printf(sc->sc_dev, "ieee80211_ifattach -> done\n");
+
 	ic->ic_raw_xmit = rtwn_raw_xmit;
 	ic->ic_scan_start = rtwn_scan_start;
 	sc->sc_scan_curchan = ic->ic_scan_curchan;
@@ -301,7 +310,9 @@ rtwn_attach(struct rtwn_softc *sc)
 	ic->ic_node_free = rtwn_node_free;
 
 	rtwn_postattach(sc);
+    device_printf(sc->sc_dev, "rtwn_postattach -> done\n");
 	rtwn_radiotap_attach(sc);
+    device_printf(sc->sc_dev, "rtwn_radiotap_attach -> done\n");
 
 	if (bootverbose)
 		ieee80211_announce(ic);
@@ -657,7 +668,7 @@ rtwn_read_chipid(struct rtwn_softc *sc)
 
 	rtwn_read_chipid_vendor(sc, reg);
 
-    device_printf(sc->sc_dev, "%s -> success\n", __func__);
+    device_printf(sc->sc_dev, "%s -> done\n", __func__);
 
 	return (0);
 }
@@ -1369,6 +1380,8 @@ rtwn_parent(struct ieee80211com *ic)
 	struct rtwn_softc *sc = ic->ic_softc;
 	struct ieee80211vap *vap;
 
+    RTWN_DPRINTF(sc, RTWN_DEBUG_ANY, "%s: inside rtwn_parent sc: 0x%p\n", __func__, (void*)sc);
+
 	if (ic->ic_nrunning > 0) {
 		if (rtwn_init(sc) != 0) {
 			IEEE80211_LOCK(ic);
@@ -1783,6 +1796,11 @@ rtwn_init(struct rtwn_softc *sc)
 	struct ieee80211com *ic = &sc->sc_ic;
 	int i, error;
 
+	device_printf(sc->sc_dev, "%s: enter -> \n", __func__);
+    sc->sc_debug = 1;
+    device_printf(sc->sc_dev, "%s: sc_debug: %d\n", __func__, sc->sc_debug);
+    RTWN_DPRINTF(sc, RTWN_DEBUG_ANY, "%s: sc: %p (via dprintf)\n", __func__, (void*)sc);
+
 	RTWN_LOCK(sc);
 	if (sc->sc_flags & RTWN_RUNNING) {
 		RTWN_UNLOCK(sc);
@@ -1790,10 +1808,14 @@ rtwn_init(struct rtwn_softc *sc)
 	}
 	sc->sc_flags |= RTWN_STARTED;
 
+    device_printf(sc->sc_dev, "%s: set flags started\n", __func__);
+
 	/* Power on adapter. */
 	error = rtwn_power_on(sc);
 	if (error != 0)
 		goto fail;
+
+    device_printf(sc->sc_dev, "%s:  set power on\n", __func__);
 
 #ifndef RTWN_WITHOUT_UCODE
 	/* Load 8051 microcode. */
@@ -1921,6 +1943,8 @@ rtwn_init(struct rtwn_softc *sc)
 #endif
 
 	sc->sc_flags |= RTWN_RUNNING;
+
+	device_printf(sc->sc_dev, "%s: finish <- \n", __func__);
 fail:
 	RTWN_UNLOCK(sc);
 

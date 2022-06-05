@@ -113,12 +113,14 @@ rtwn_pci_probe(device_t dev)
 {
 	const struct rtwn_pci_ident *ident;
 
-    device_printf(dev, "%s -> kernel code probe enter\n", __func__);
+    device_printf(dev, "%s -> enter\n", __func__);
 
 	ident = rtwn_pci_probe_sub(dev);
 	if (ident != NULL) {
 		device_set_desc(dev, ident->name);
+        device_printf(dev, "%s <- exit\n", __func__);
 		return (BUS_PROBE_DEFAULT);
+
 	}
 	return (ENXIO);
 }
@@ -640,6 +642,9 @@ rtwn_pci_attach(device_t dev)
 		device_printf(dev, "can't map mem space\n");
 		return (ENOMEM);
 	}
+
+    device_printf(dev, "%s -> pci device bus allocation success\n", "bus_alloc_ressource_any");
+
 	pc->pc_st = rman_get_bustag(pc->mem);
 	pc->pc_sh = rman_get_bushandle(pc->mem);
 
@@ -655,6 +660,8 @@ rtwn_pci_attach(device_t dev)
 		device_printf(dev, "can't map interrupt\n");
 		goto detach;
 	}
+
+    device_printf(dev, "%s -> pci device bus map interrupt success\n", "bus_alloc_ressource_any");
 
 	/* Disable PCIe Active State Power Management (ASPM). */
 	lcsr = pci_read_config(dev, cap_off + PCIER_LINK_CTL, 4);

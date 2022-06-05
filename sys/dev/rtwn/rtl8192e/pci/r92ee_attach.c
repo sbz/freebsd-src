@@ -92,6 +92,8 @@ r92ee_attach_private(struct rtwn_softc *sc)
     /* TODO */
     struct r92e_softc *rs;
 
+    device_printf(sc->sc_dev, "%s -> enter\n", __func__);
+
     rs = malloc(sizeof(struct r92e_softc), M_RTWN_PRIV, M_WAITOK | M_ZERO);
 
     sc->sc_priv = rs;
@@ -101,6 +103,7 @@ static void
 r92ee_detach_private(struct rtwn_softc *sc)
 {
     struct r92e_softc *rs = sc->sc_priv;
+    device_printf(sc->sc_dev, "%s -> enter\n", __func__);
 
     free(rs, M_RTWN_PRIV);
 }
@@ -109,6 +112,7 @@ static void
 r92ee_adj_devcaps(struct rtwn_softc *sc)
 {
     /* TODO */
+    device_printf(sc->sc_dev, "%s -> enter\n", __func__);
 }
 
 void
